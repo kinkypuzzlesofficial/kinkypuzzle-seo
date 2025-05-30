@@ -7,8 +7,8 @@
 <script>
 async function fetchStats() {
   const res = await fetch('https://botstats-worker.kinkypuzzlesofficial.workers.dev/');
-  const data = await res.text();
-  document.getElementById('stats').innerText = data;
+  const data = await res.json();
+  document.getElementById('stats').innerText = JSON.stringify(data, null, 2);
 }
 setInterval(fetchStats, 5000);
 fetchStats();
