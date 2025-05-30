@@ -1,17 +1,44 @@
 <!DOCTYPE html>
 <html>
-<head><title>phBot Live Stats</title></head>
+<head>
+  <title>phBot Live Stats Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; }
+    h1, h2 { color: #333; }
+    .char { background: #fff; border: 1px solid #ccc; padding: 10px; margin-bottom: 20px; }
+    .section { margin-bottom: 10px; }
+    .label { font-weight: bold; }
+  </style>
+</head>
 <body>
-<h1>phBot Live Stats</h1>
-<pre id="stats">Loading...</pre>
-<script>
-async function fetchStats() {
-  const res = await fetch('https://botstats-worker.kinkypuzzlesofficial.workers.dev/');
-  const data = await res.json();
-  document.getElementById('stats').innerText = JSON.stringify(data, null, 2);
-}
-setInterval(fetchStats, 5000);
-fetchStats();
-</script>
+  <h1>phBot Live Stats</h1>
+  <div id="stats">Loading...</div>
+
+  <script>
+    async function fetchStats() {
+      const res = await fetch('https://botstats-worker.kinkypuzzlesofficial.workers.dev/');
+      const data = await res.json();
+
+      let output = '';
+      for (const [charName, stats] of Object.entries(data)) {
+        output += `<div class="char"><h2>${charName}</h2>`;
+        output += `<div class="section"><span class="label">Location:</span> ${stats.zone_name} (${stats.x}, ${stats.y})</div>`;
+        output += `<div class="section"><span class="label">Level:</span> ${stats.level}, <span class="label">Guild:</span> ${stats.guild}</div>`;
+        output += `<div class="section"><span class="label">EXP:</span> ${stats.exp} (Gained: ${stats.exp_gained}, Per Hour: ${stats.exp_hour})</div>`;
+        output += `<div class="section"><span class="label">SP:</span> ${stats.sp} (Gained: ${stats.sp_gained}, Per Hour: ${stats.sp_hour})</div>`;
+        output += `<div class="section"><span class="label">Gold:</span> ${stats.gold}, <span class="label">Drops:</span> ${stats.drops}</div>`;
+        output += `<div class="section"><span class="label">HP:</span> ${stats.hp}/${stats.hp_max}, <span class="label">MP:</span> ${stats.mp}/${stats.mp_max}</div>`;
+        output += `<div class="section"><span class="label">Kills:</span> ${stats.kill_count}, <span class="label">Deaths:</span> ${stats.death_count}, <span class="label">Dead:</span> ${stats.dead}</div>`;
+        output += `<div class="section"><span class="label">Botting:</span> ${stats.botting}, <span class="label">Connected:</span> ${stats.connected}</div>`;
+        output += `<div class="section"><span class="label">Time to Level:</span> ${stats.time_to_level.toFixed(2)} hours</div>`;
+        output += `</div>`;
+      }
+
+      document.getElementById('stats').innerHTML = output;
+    }
+
+    setInterval(fetchStats, 5000);
+    fetchStats();
+  </script>
 </body>
 </html>
