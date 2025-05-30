@@ -2,65 +2,122 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>phBot Live Stats Dashboard</title>
+  <title>phBot Live Stats Pro+</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body { background-color: #f4f4f4; padding: 20px; }
     h1 { color: #007bff; text-align: center; }
-    .char-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
+    .char-card { background: #fff; border-radius: 8px; padding: 20px; margin: 10px auto; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>phBot Live Stats</h1>
-    <div class="row mb-3">
-      <div class="col-md-6 offset-md-3">
-        <select id="charSelector" class="form-select" onchange="showStats()">
-          <option>Loading...</option>
-        </select>
-      </div>
+<div class="container">
+  <h1>phBot Live Stats Pro+</h1>
+  <div class="row mb-3">
+    <div class="col-md-4">
+      <select id="groupSelector" class="form-select" onchange="populateToons()">
+        <option>Loading Groups...</option>
+      </select>
     </div>
-    <div id="stats" class="char-card">Waiting for data...</div>
+    <div class="col-md-4">
+      <select id="toonSelector" class="form-select" onchange="showStats()">
+        <option>Select Group First</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <button class="btn btn-primary w-100" onclick="showAll()">View All</button>
+    </div>
   </div>
+  <div id="stats">Waiting for data...</div>
+</div>
 
-  <script>
-    let dataCache = {};
+<script>
+  let dataCache = {};
+  let groupToToons = {};
 
-    async function fetchStats() {
-      try {
-        const res = await fetch('https://botstats-worker.kinkypuzzlesofficial.workers.dev/');
-        dataCache = await res.json();
-        const selector = document.getElementById('charSelector');
-        selector.innerHTML = '';
-        for (const charName in dataCache) {
-          selector.innerHTML += `<option value="${charName}">${charName}</option>`;
-        }
-        showStats();
-      } catch (error) {
-        console.error('Fetch failed', error);
-        document.getElementById('stats').innerHTML = '<p class="text-danger">Failed to fetch stats.</p>';
+  async function fetchStats() {
+    try {
+      const res = await fetch('https://botstats-worker.kinkypuzzlesofficial.workers.dev/');
+      dataCache = await res.json();
+
+      // Parse group and toons
+      groupToToons = {};
+      for (const fullName in dataCache) {
+        const parts = fullName.split('/');
+        const group = parts[0];
+        const toon = parts.slice(1).join('/');
+        if (!groupToToons[group]) groupToToons[group] = [];
+        groupToToons[group].push(fullName);
+      }
+
+      // Populate group selector
+      const groupSelector = document.getElementById('groupSelector');
+      groupSelector.innerHTML = '';
+      for (const group in groupToToons) {
+        groupSelector.innerHTML += `<option value="${group}">${group}</option>`;
+      }
+      populateToons();
+    } catch (error) {
+      console.error('Fetch failed', error);
+      document.getElementById('stats').innerHTML = '<p class="text-danger">Failed to fetch stats.</p>';
+    }
+  }
+
+  function populateToons() {
+    const group = document.getElementById('groupSelector').value;
+    const toonSelector = document.getElementById('toonSelector');
+    toonSelector.innerHTML = '<option value="ALL">All</option>';
+    if (groupToToons[group]) {
+      for (const toon of groupToToons[group]) {
+        const name = toon.split('/').slice(1).join('/');
+        toonSelector.innerHTML += `<option value="${toon}">${name}</option>`;
       }
     }
+    showStats();
+  }
 
-    function showStats() {
-      const charName = document.getElementById('charSelector').value;
-      const stats = dataCache[charName];
-      if (!stats) return;
-      document.getElementById('stats').innerHTML = `
+  function showStats() {
+    const toon = document.getElementById('toonSelector').value;
+    const statsDiv = document.getElementById('stats');
+    let output = '';
+    if (toon === 'ALL') {
+      const group = document.getElementById('groupSelector').value;
+      for (const t of groupToToons[group]) {
+        output += formatStats(t, dataCache[t]);
+      }
+    } else {
+      output = formatStats(toon, dataCache[toon]);
+    }
+    statsDiv.innerHTML = output || '<p>Select a group and toon.</p>';
+  }
+
+  function showAll() {
+    let output = '';
+    for (const t in dataCache) {
+      output += formatStats(t, dataCache[t]);
+    }
+    document.getElementById('stats').innerHTML = output;
+  }
+
+  function formatStats(charName, stats) {
+    if (!stats) return '';
+    return `
+      <div class="char-card">
         <h3>${charName}</h3>
         <p><strong>Status:</strong> ${stats.dead ? '<span class="text-danger">Dead</span>' : '<span class="text-success">Alive</span>'}, Botting: ${stats.botting}, Connected: ${stats.connected}</p>
         <p><strong>Location:</strong> ${stats.zone_name} (${stats.x.toFixed(2)}, ${stats.y.toFixed(2)})</p>
         <p><strong>Level:</strong> ${stats.level}, Guild: ${stats.guild}, Server: ${stats.server}</p>
-        <p><strong>EXP:</strong> ${stats.exp.toLocaleString()} (Per Hour: ${stats.exp_hour.toFixed(2)}), Time to Level: ${stats.time_to_level.toFixed(2)} hours</p>
+        <p><strong>EXP:</strong> ${stats.exp.toLocaleString()} (Per Hour: ${stats.exp_hour.toFixed(2)}), Time to Level: ${stats.time_to_level.toFixed(2)}h</p>
         <p><strong>SP:</strong> ${stats.sp.toLocaleString()} (Per Hour: ${stats.sp_hour.toFixed(2)}), SP Gained: ${stats.sp_gained}</p>
         <p><strong>Gold:</strong> ${stats.gold.toLocaleString()}, Drops: ${stats.drops}</p>
         <p><strong>HP:</strong> ${stats.hp}/${stats.hp_max}, MP: ${stats.mp}/${stats.mp_max}</p>
         <p><strong>Kills:</strong> ${stats.kill_count}, Deaths: ${stats.death_count}</p>
-      `;
-    }
+      </div>
+    `;
+  }
 
-    setInterval(fetchStats, 5000);
-    fetchStats();
-  </script>
+  setInterval(fetchStats, 5000);
+  fetchStats();
+</script>
 </body>
 </html>
