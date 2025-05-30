@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><title>phBot Live Stats</title></head>
+<body>
+<h1>phBot Live Stats</h1>
+<pre id="stats">Loading...</pre>
+<script>
+async function fetchStats() {
+  const res = await fetch('https://botstats-worker.kinkypuzzlesofficial.workers.dev/');
+  const data = await res.text();
+  document.getElementById('stats').innerText = data;
+}
+setInterval(fetchStats, 5000);
+fetchStats();
+</script>
+</body>
+</html>
