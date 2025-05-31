@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>phBot Live Stats Pro+</title>
+  <title>phBot Live Stats Pro++</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body { background-color: #f4f4f4; padding: 20px; }
@@ -12,20 +12,20 @@
 </head>
 <body>
 <div class="container">
-  <h1>phBot Live Stats Pro+</h1>
+  <h1>phBot Live Stats Pro++</h1>
   <div class="row mb-3">
-    <div class="col-md-4">
+    <div class="col-md-3">
+      <label for="groupSelector" class="form-label">Select Group</label>
       <select id="groupSelector" class="form-select" onchange="populateToons()">
-        <option>Loading Groups...</option>
+        <option>Loading...</option>
       </select>
     </div>
-    <div class="col-md-4">
-      <select id="toonSelector" class="form-select" onchange="showStats()">
-        <option>Select Group First</option>
-      </select>
+    <div class="col-md-6">
+      <label for="toonSelector" class="form-label">Select Characters</label>
+      <select id="toonSelector" class="form-select" multiple size="6"></select>
     </div>
-    <div class="col-md-4">
-      <button class="btn btn-primary w-100" onclick="showAll()">View All</button>
+    <div class="col-md-3 d-flex align-items-end">
+      <button class="btn btn-primary w-100" onclick="showAll()">View All Characters</button>
     </div>
   </div>
   <div id="stats">Waiting for data...</div>
@@ -40,7 +40,7 @@
       const res = await fetch('https://botstats-worker.kinkypuzzlesofficial.workers.dev/');
       dataCache = await res.json();
 
-      // Parse group and toons
+      // Parse groups and toons
       groupToToons = {};
       for (const fullName in dataCache) {
         const parts = fullName.split('/');
@@ -50,7 +50,7 @@
         groupToToons[group].push(fullName);
       }
 
-      // Populate group selector
+      // Populate group dropdown
       const groupSelector = document.getElementById('groupSelector');
       groupSelector.innerHTML = '';
       for (const group in groupToToons) {
@@ -66,35 +66,29 @@
   function populateToons() {
     const group = document.getElementById('groupSelector').value;
     const toonSelector = document.getElementById('toonSelector');
-    toonSelector.innerHTML = '<option value="ALL">All</option>';
+    toonSelector.innerHTML = '';
     if (groupToToons[group]) {
       for (const toon of groupToToons[group]) {
         const name = toon.split('/').slice(1).join('/');
         toonSelector.innerHTML += `<option value="${toon}">${name}</option>`;
       }
     }
-    showStats();
+    showSelected();
   }
 
-  function showStats() {
-    const toon = document.getElementById('toonSelector').value;
-    const statsDiv = document.getElementById('stats');
+  function showSelected() {
+    const selectedOptions = Array.from(document.getElementById('toonSelector').selectedOptions);
     let output = '';
-    if (toon === 'ALL') {
-      const group = document.getElementById('groupSelector').value;
-      for (const t of groupToToons[group]) {
-        output += formatStats(t, dataCache[t]);
-      }
-    } else {
-      output = formatStats(toon, dataCache[toon]);
+    for (const option of selectedOptions) {
+      output += formatStats(option.value, dataCache[option.value]);
     }
-    statsDiv.innerHTML = output || '<p>Select a group and toon.</p>';
+    document.getElementById('stats').innerHTML = output || '<p>Select a group and characters.</p>';
   }
 
   function showAll() {
     let output = '';
-    for (const t in dataCache) {
-      output += formatStats(t, dataCache[t]);
+    for (const toon in dataCache) {
+      output += formatStats(toon, dataCache[toon]);
     }
     document.getElementById('stats').innerHTML = output;
   }
@@ -116,8 +110,12 @@
     `;
   }
 
+  // Auto-refresh
   setInterval(fetchStats, 5000);
   fetchStats();
+
+  // Also update when selection changes
+  document.getElementById('toonSelector').addEventListener('change', showSelected);
 </script>
 </body>
 </html>
