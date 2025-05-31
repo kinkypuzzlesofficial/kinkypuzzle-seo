@@ -70,7 +70,6 @@
       }
     }
 
-    // Restore selected toons
     const savedToons = JSON.parse(localStorage.getItem('selectedToons')) || [];
     for (const option of toonSelector.options) {
       option.selected = savedToons.includes(option.value);
@@ -107,9 +106,10 @@
 
   function formatStats(charName, stats) {
     if (!stats) return '';
+    const nameColor = stats.connected ? 'lime' : 'red'; // Dynamic color based on connection
     return `
       <div class="char-card">
-        <h3>${charName}</h3>
+        <h3 style="color:${nameColor}">${charName}</h3>
         <p><strong>Status:</strong> ${stats.dead ? '<span class="text-danger">Dead</span>' : '<span class="text-success">Alive</span>'}, Botting: ${stats.botting}, Connected: ${stats.connected}</p>
         <p><strong>Location:</strong> ${stats.zone_name} (${stats.x.toFixed(2)}, ${stats.y.toFixed(2)})</p>
         <p><strong>Level:</strong> ${stats.level}, Guild: ${stats.guild}, Server: ${stats.server}</p>
@@ -147,3 +147,4 @@
 </script>
 </body>
 </html>
+
