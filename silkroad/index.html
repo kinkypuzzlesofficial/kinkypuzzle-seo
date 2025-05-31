@@ -2,27 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>phBot Live Stats</title>
+  <title>phBot Live Stats Pro++</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body { background-color: #f4f4f4; padding: 20px; }
-    h1 { color: #007bff; text-align: center; }
-    .char-card { background: #fff; border-radius: 8px; padding: 20px; margin: 10px auto; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
-  </style>
+  <link href="style.css" rel="stylesheet"> <!-- External style -->
 </head>
 <body>
 <div class="container">
-  <h1>phBot Live Stats</h1>
+  <h1>phBot Live Stats Pro++</h1>
   <div class="row mb-3">
     <div class="col-md-3">
       <label for="groupSelector" class="form-label">Select Group</label>
-      <select id="groupSelector" class="form-select" onchange="populateToons()">
+      <select id="groupSelector" class="form-select" onchange="populateToons(); saveSelection();">
         <option>Loading...</option>
       </select>
     </div>
     <div class="col-md-6">
       <label for="toonSelector" class="form-label">Select Characters</label>
-      <select id="toonSelector" class="form-select" multiple size="6"></select>
+      <select id="toonSelector" class="form-select" multiple size="6" onchange="saveSelection(); showSelected();"></select>
     </div>
     <div class="col-md-3 d-flex align-items-end">
       <button class="btn btn-primary w-100" onclick="showAll()">View All Characters</button>
@@ -40,7 +36,6 @@
       const res = await fetch('https://botstats-worker.kinkypuzzlesofficial.workers.dev/');
       dataCache = await res.json();
 
-      // Parse groups and toons
       groupToToons = {};
       for (const fullName in dataCache) {
         const parts = fullName.split('/');
@@ -50,12 +45,13 @@
         groupToToons[group].push(fullName);
       }
 
-      // Populate group dropdown
       const groupSelector = document.getElementById('groupSelector');
       groupSelector.innerHTML = '';
       for (const group in groupToToons) {
         groupSelector.innerHTML += `<option value="${group}">${group}</option>`;
       }
+
+      loadSelection();
       populateToons();
     } catch (error) {
       console.error('Fetch failed', error);
@@ -66,22 +62,38 @@
   function populateToons() {
     const group = document.getElementById('groupSelector').value;
     const toonSelector = document.getElementById('toonSelector');
-    toonSelector.innerHTML = '';
+    toonSelector.innerHTML = '<option value="ALL">Show All in Group</option>';
     if (groupToToons[group]) {
       for (const toon of groupToToons[group]) {
         const name = toon.split('/').slice(1).join('/');
         toonSelector.innerHTML += `<option value="${toon}">${name}</option>`;
       }
     }
+
+    // Restore selected toons
+    const savedToons = JSON.parse(localStorage.getItem('selectedToons')) || [];
+    for (const option of toonSelector.options) {
+      option.selected = savedToons.includes(option.value);
+    }
+
     showSelected();
   }
 
   function showSelected() {
     const selectedOptions = Array.from(document.getElementById('toonSelector').selectedOptions);
+    const group = document.getElementById('groupSelector').value;
     let output = '';
-    for (const option of selectedOptions) {
-      output += formatStats(option.value, dataCache[option.value]);
+
+    if (selectedOptions.some(opt => opt.value === 'ALL')) {
+      for (const toon of groupToToons[group]) {
+        output += formatStats(toon, dataCache[toon]);
+      }
+    } else {
+      for (const option of selectedOptions) {
+        output += formatStats(option.value, dataCache[option.value]);
+      }
     }
+
     document.getElementById('stats').innerHTML = output || '<p>Select a group and characters.</p>';
   }
 
@@ -110,12 +122,28 @@
     `;
   }
 
-  // Auto-refresh
+  function saveSelection() {
+    const group = document.getElementById('groupSelector').value;
+    const selectedToons = Array.from(document.getElementById('toonSelector').selectedOptions).map(opt => opt.value);
+    localStorage.setItem('selectedGroup', group);
+    localStorage.setItem('selectedToons', JSON.stringify(selectedToons));
+  }
+
+  function loadSelection() {
+    const savedGroup = localStorage.getItem('selectedGroup');
+    if (savedGroup) {
+      const groupSelector = document.getElementById('groupSelector');
+      for (const option of groupSelector.options) {
+        if (option.value === savedGroup) {
+          option.selected = true;
+          break;
+        }
+      }
+    }
+  }
+
   setInterval(fetchStats, 5000);
   fetchStats();
-
-  // Also update when selection changes
-  document.getElementById('toonSelector').addEventListener('change', showSelected);
 </script>
 </body>
 </html>
